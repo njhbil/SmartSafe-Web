@@ -233,7 +233,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("User registered successfully")
 	sendJsonResponse(w, http.StatusOK, "User registered successfully")
-	w.WriteHeader(http.StatusOK)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -281,7 +280,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	if !exists {
 		log.Println("Email does not exist")
-		http.Error(w, "Email does not exist", http.StatusNotFound)
+		sendJsonResponse(w, http.StatusNotFound, "Email does not exist")
 		return
 	}
 
@@ -314,7 +313,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Println("Login successful (30 Day)")
 			sendJsonResponse(w, http.StatusOK, "Login successful", tokenString)
-			w.WriteHeader(http.StatusOK)
 			return
 		} else {
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -329,13 +327,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Println("Login successful (1 Day)")
 			sendJsonResponse(w, http.StatusOK, "Login successful", tokenString)
-			w.WriteHeader(http.StatusOK)
 			return
 		}
 
 	} else {
 		log.Println("Password is incorrect")
-		http.Error(w, "Password is incorrect", http.StatusUnauthorized)
 		sendJsonResponse(w, http.StatusUnauthorized, "Password is incorrect")
 		return
 	}
