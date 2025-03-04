@@ -142,7 +142,7 @@ func sendJsonResponse(w http.ResponseWriter, status int, message string, ResetTo
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]string{"message": message, "ResetToken": responeToken})
+		json.NewEncoder(w).Encode(map[string]string{"message": message, "RefreshToken": responeToken})
 	}
 }
 
@@ -186,7 +186,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	if req.Email == "" || req.Username == "" || req.Password == "" {
 		log.Println("username, email or password is empty")
-		http.Error(w, "username, email or password is empty", http.StatusBadRequest)
+		sendJsonResponse(w, http.StatusBadRequest, "username, email or password is empty")
 		return
 	}
 
@@ -198,7 +198,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 	if exists {
 		log.Println("Email already exists")
-		http.Error(w, "Email already exists", http.StatusConflict)
+		sendJsonResponse(w, http.StatusConflict, "Email already exists")
 		return
 	}
 
@@ -210,7 +210,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 	if exists {
 		log.Println("Username already exists")
-		http.Error(w, "Username already exists", http.StatusConflict)
+		sendJsonResponse(w, http.StatusConflict, "Username already exists")
 		return
 	}
 
@@ -280,7 +280,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	if !exists {
 		log.Println("Email does not exist")
-		sendJsonResponse(w, http.StatusNotFound, "Email does not exist")
+		http.Error(w, "Email does not exist", http.StatusUnauthorized)
 		return
 	}
 
@@ -331,8 +331,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		log.Println("Password is incorrect")
-		sendJsonResponse(w, http.StatusUnauthorized, "Password is incorrect")
+		log.Println("Password is invalid")
+		http.Error(w, "Password is invalid", http.StatusUnauthorized)
 		return
 	}
 }
