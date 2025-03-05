@@ -1,8 +1,11 @@
-<h1 class="text-3xl font-bold underline">Hello world!</h1>
+<script>
+    import Hero from "../components/hero.svelte";
+    import Smartsafe from "../components/smartsafe.svelte";
+    import FAQ from "../components/faq.svelte"
+</script>
 
-<style lang="postcss">
-    @reference "tailwindcss/theme";
-    :global(html) {
-        background-color: theme(--color-gray-100);
-    }
-</style>
+<main class="flex flex-col">
+    <Hero onClick={()=>{ }}/>
+    <Smartsafe />
+    <FAQ />
+</main>
