@@ -1,11 +1,12 @@
 <script>
-    import Hero from "../components/hero.svelte";
-    import Smartsafe from "../components/smartsafe.svelte";
-    import FAQ from "../components/faq.svelte"
+    import Hero from "$lib/components/hero.svelte";
+    import Smartsafe from "$lib/components/smartsafe.svelte";
+    import FAQ from "$lib/components/faq.svelte";
 </script>
 
 <main class="flex flex-col">
-    <Hero onClick={()=>{ }}/>
+    <Hero onClick={() => {}} />
     <Smartsafe />
     <FAQ />
 </main>
+
