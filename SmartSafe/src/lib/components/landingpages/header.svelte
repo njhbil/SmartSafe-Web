@@ -1,7 +1,12 @@
 <script lang="ts">
     export let title: string = "Smart";
     export let subtitle: string = "Safe";
-    import handleHistory from "./HandleHistory";
+    import handleHistory from "../HandleHistory";
+
+    let isMobileMenuOpen: boolean = false;
+    const toggleMobileMenu = () => {
+        isMobileMenuOpen = !isMobileMenuOpen;
+    };
 </script>
 
 <header
@@ -34,8 +39,32 @@
             >
         </nav>
 
-        <button aria-label="Open menu" class="md:hidden text-black text-2xl">
+        <button
+            aria-label="Open menu"
+            class="md:hidden text-white text-2xl"
+            on:click={toggleMobileMenu}
+        >
             <i class="fa-solid fa-bars"></i>
         </button>
     </div>
+
+    {#if isMobileMenuOpen}
+        <div class="md:hidden bg-gray-800 text-white p-4 flex flex-col gap-4">
+            <a
+                href="#smartsafe"
+                class="block py-2 hover:text-blue-400 transition"
+                on:click={(e) => handleHistory(e, "smartsafe")}>Tentang Kita</a
+            >
+            <a
+                href="#faq"
+                class="block py-2 hover:text-blue-400 transition"
+                on:click={(e) => handleHistory(e, "faq")}>FAQ</a
+            >
+            <a
+                href="/signin"
+                class="block py-2 w-1/2 bg-blue-500 text-center text-white rounded-full hover:bg-blue-600 transition"
+                >Masuk</a
+            >
+        </div>
+    {/if}
 </header>

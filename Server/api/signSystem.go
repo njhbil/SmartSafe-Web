@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/argon2"
+	gomail "gopkg.in/mail.v2"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 
 	//JWT Secret
 	jwtSecret = os.Getenv("JWT_SECRET")
+	clientURL = os.Getenv("CLIENT_URL")
 )
 
 type accounts struct {
@@ -35,8 +37,9 @@ type accounts struct {
 }
 
 type Payload struct {
-	RememberMe bool   `json:"rememberMe"`
-	ResetToken string `json:"resetToken"`
+	RememberMe    bool   `json:"rememberMe"`
+	ResetToken    string `json:"resetToken"`
+	ResetPWDtoken string `json:"resetPWDtoken"`
 }
 
 type params struct {
@@ -335,6 +338,184 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Password is invalid", http.StatusUnauthorized)
 		return
 	}
+}
+
+func ForgetPassword(w http.ResponseWriter, r *http.Request) {
+	var exists bool
+
+	conn := db.Connect()
+	defer conn.Close()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Read Body Error:", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var req accounts
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		log.Println("JSON Decode Error for Accounts:", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" {
+		log.Println("email is empty")
+		http.Error(w, "email is empty", http.StatusBadRequest)
+		return
+	}
+
+	exists, err = conn.Model(new(accounts)).Where("email = ?", req.Email).Exists()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
+		log.Println("Email does not exist")
+		http.Error(w, "Email does not exist", http.StatusUnauthorized)
+		return
+	}
+
+	var account accounts
+	err = conn.Model(&account).Where("email = ?", req.Email).Select()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": account.Email,
+		"exp":   time.Now().Add(time.Minute * 10).Unix(),
+	})
+	tokenString, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		log.Println("Token Signing Error:", err)
+		http.Error(w, "Token Signing Error", http.StatusInternalServerError)
+		return
+	}
+
+	m := gomail.NewMessage()
+	m.SetHeader("From", "me@arpthef.my.id")
+	m.SetHeader("To", account.Email)
+	m.SetHeader("Subject", "Reset Password")
+	m.SetBody("text/html", "Click <a href='http://localhost:5173/resetpassword/"+tokenString+"'>here</a> to reset your password")
+
+	d := gomail.NewDialer("live.smtp.mailtrap.io", 587, "api", os.Getenv("MAILTRAP_TOKEN"))
+	if err := d.DialAndSend(m); err != nil {
+		log.Println("Email Sending Error:", err)
+		http.Error(w, "Email Sending Error", http.StatusInternalServerError)
+		return
+	}
+
+	sendJsonResponse(w, http.StatusOK, "Email sent successfully")
+}
+
+func ResetPassword(w http.ResponseWriter, r *http.Request) {
+	p := &params{
+		Memory:      64 * 1024,
+		Iterations:  3,
+		Parallelism: 2,
+		SaltLength:  16,
+		KeyLength:   32,
+	}
+
+	var exists bool
+
+	conn := db.Connect()
+	defer conn.Close()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Read Body Error:", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var req accounts
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		log.Println("JSON Decode Error for Accounts:", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var payload Payload
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		log.Println("JSON Decode Error for Payload:", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if req.Password == "" {
+		log.Println("password is empty")
+		http.Error(w, "password is empty", http.StatusBadRequest)
+		return
+	}
+
+	if payload.ResetPWDtoken == "" {
+		log.Println("Error: Token is empty")
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	cleanToken := strings.TrimSpace(payload.ResetPWDtoken)
+
+	token, err := jwt.ParseWithClaims(cleanToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	claims, ok := token.Claims.(*jwt.MapClaims)
+	if !ok || !token.Valid {
+		log.Println("Token is invalid or claims are malformed")
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	email, ok := (*claims)["email"].(string)
+	if !ok || email == "" {
+		log.Println("Email claim missing or invalid")
+		http.Error(w, "Invalid token data", http.StatusUnauthorized)
+		return
+	}
+
+	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
+		log.Println("Email does not exist")
+		http.Error(w, "Email does not exist", http.StatusUnauthorized)
+		return
+	}
+
+	hash, err := hashPassword(req.Password, p)
+	if err != nil {
+		log.Println("Password Hash Error:", err)
+		http.Error(w, "Password Hash Error", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = conn.Model(new(accounts)).Set("password = ?", hash).Where("email = ?", email).Update()
+	if err != nil {
+		log.Println("Database Update Error:", err)
+		http.Error(w, "Database Update Error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Password reset successfully")
+	sendJsonResponse(w, http.StatusOK, "Password reset successfully")
 }
 
 func NewWithClaims(claims jwt.Claims, method jwt.SigningMethod) *Token {

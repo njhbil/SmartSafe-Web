@@ -19,6 +19,8 @@ func main() {
 	http.HandleFunc("/api/register", api.Register)
 	http.HandleFunc("/api/accounts", api.Accounts)
 	http.HandleFunc("/api/login", api.Login)
+	http.HandleFunc("/api/forgetpassword", api.ForgetPassword)
+	http.HandleFunc("/api/resetpassword", api.ResetPassword)
 	log.Println("Server started at", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }

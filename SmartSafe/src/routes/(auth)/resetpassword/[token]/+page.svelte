@@ -1,5 +1,6 @@
 <script lang="ts">
-    import loginAPI from "$lib/api/loginAPI";
+    import { onMount } from "svelte";
+    import resetAPI from "$lib/api/resetAPI";
 
     let error: any = null;
     function setErrors(errors: any) {
@@ -12,31 +13,43 @@
     }
 
     let values = {
-        email: "",
         password: "",
-        rememberMe: false,
+        confirmPassword: "",
+        resetPWDtoken: "",
     };
 
+    onMount(() => {
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            const pathSegments = url.pathname.split("/");
+            values.resetPWDtoken = pathSegments[pathSegments.length - 1];
+        }
+    });
+
     const handleSubmit = async (values: {
-        email: string;
         password: string;
-        rememberMe: boolean;
+        confirmPassword: string;
+        resetPWDtoken: string;
     }) => {
         try {
             setErrors(null);
             setSuccess(null);
-            const response = await loginAPI(values);
+            const response = await resetAPI(values);
 
-            if (values.email === "" || values.password === "") {
+            if (values.password === "" || values.confirmPassword === "") {
                 setErrors("Please fill in all fields.");
                 return;
             }
 
+            if (values.password !== values.confirmPassword) {
+                setErrors("Passwords do not match.");
+                return;
+            }
+
             if (response.success) {
-                setSuccess("Login successful. Redirecting...");
-                localStorage.setItem("token", response.token);
+                setSuccess(response.message);
             } else {
-                setErrors("Email or password is invalid.");
+                setErrors("Reset failed.");
             }
         } catch (error) {
             console.error(error);
@@ -49,50 +62,31 @@
     <section class="h-screen flex items-center justify-center">
         <form class="flex flex-col items-center">
             <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                class="border border-gray-300 rounded p-2 m-2"
-                bind:value={values.email}
-            />
-            <input
                 type="password"
                 name="password"
                 placeholder="Password"
                 class="border border-gray-300 rounded p-2 m-2"
                 bind:value={values.password}
             />
-            <p class="text-sm m-2">
-                Don't have an account?
-                <a href="/signup" class="text-sm text-blue-700">Sign Up</a>
-            </p>
-            <p class="text-sm m-2">
-                Forgot your password?
-                <a href="/forgetpassword" class="text-sm text-blue-700"
-                    >Reset Password</a
-                >
-            </p>
-            <label>
-                <input
-                    type="checkbox"
-                    name="rememberMe"
-                    class="m-2"
-                    bind:checked={values.rememberMe}
-                />
-                Remember Me
-            </label>
+            <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                class="border border-gray-300 rounded p-2 m-2"
+                bind:value={values.confirmPassword}
+            />
             {#if error}
                 <p class="text-red-500">{error}</p>
             {/if}
             {#if success}
-                <p class="text-green-500">{success}</p>
+                <p class="text-green text-center">{success}</p>
             {/if}
             <button
                 type="submit"
                 class="bg-blue-500 text-white rounded p-2 m-2"
                 on:click|preventDefault={() => handleSubmit(values)}
             >
-                Sign Up
+                Reset Password
             </button>
         </form>
     </section>

@@ -136,7 +136,7 @@
             validateInput(values.passwordConfirmation, "passwordConfirmation");
 
             const response = await registerApi(values);
-            if (!response.ok) {
+            if (!response.success) {
                 setErrors(response.message);
             } else {
                 setSuccess(
@@ -190,6 +190,11 @@
                 class="border border-gray-300 rounded p-2 m-2"
                 bind:value={values.passwordConfirmation}
             />
+            <p class="text-sm m-2">
+                <a href="/signin" class="text-blue-500"
+                    >Already have an account?</a
+                >
+            </p>
             {#if error && error.confirmPassword}
                 <p class="text-red-500">{error.confirmPassword}</p>
             {/if}

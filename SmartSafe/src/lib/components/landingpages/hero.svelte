@@ -55,7 +55,7 @@
                 <a
                     href="/maps"
                     class="text-base sm:text-lg md:text-xl font-semibold"
-                    >Get Start &rarr;</a
+                    >Mulai &rarr;</a
                 >
             </button>
         {/if}

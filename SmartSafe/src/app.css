@@ -1,60 +1,148 @@
 @import "tailwindcss";
 
-html{
-    scroll-behavior: smooth;
+.h-screen-10 {
+  height: calc(100vh - 40px);
+  height: calc(var(--vh, 1vh) * 100 - 40px);
+}
+
+.map-container {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: calc(var(--vh, 1vh) * 100 - 40px);
+}
+
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 * {
-    font-family: 'Open Sans', sans-serif;
+  font-family: "Open Sans", sans-serif;
 }
 
-h1, h2, h3, .poopins{
-    font-family: 'Poppins', sans-serif;
+h1,
+h2,
+h3,
+.poopins {
+  font-family: "Poppins", sans-serif;
 }
 
 span {
-    font-family: inherit;
-    font-weight: inherit;
+  font-family: inherit;
+  font-weight: inherit;
 }
 
 .bgGrid {
-    background-size: 40px 40px;
-    background-image: linear-gradient(to right, grey 1px, transparent 1px), linear-gradient(to bottom, grey 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, grey 1px, transparent 1px),
+    linear-gradient(to bottom, grey 1px, transparent 1px);
 }
-
 
 button,
 .button {
-    border-radius: 30px;
-    border: 1px solid transparent;
-    padding: 0.6em 2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: gray-900;
-    cursor: pointer;
-    transition: border-color 0.2s;
+  border-radius: 30px;
+  border: 1px solid transparent;
+  padding: 0.6em 2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: gray-900;
+  cursor: pointer;
+  transition: border-color 0.2s;
 }
 
-
-button:hover{
-    border-color: blue;
+button:hover {
+  border-color: blue;
 }
 
 button:focus,
-button:focus-visible{
-    outline: 4px auto -webkit-focus-ring-color;
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
 }
 
 .SpesialBTN {
-    border-color: blue;
+  border-color: blue;
 }
 
 .SpesialBTNDark {
-    background: blue;
-    color: white;
+  background: blue;
+  color: white;
 }
 
 .SpesialBTN:hover {
-    border-color: blue;
+  border-color: blue;
+}
+
+.custom-zoom {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-zoom button {
+  background-color: #007bff;
+  color: white;
+  border-radius: 15px;
+  border: none;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.custom-zoom button:hover {
+  background-color: #0056b3;
+}
+
+.custom-rotate {
+  position: absolute;
+  bottom: 60px;
+  left: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-rotate button {
+  background-color: #007bff;
+  color: white;
+  border-radius: 15px;
+  border: none;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.custom-rotate button:hover {
+  background-color: #0056b3;
+}
+
+.center-to-user {
+  position: absolute;
+  bottom: 10px;
+  left: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.center-to-user button {
+  background-color: #007bff;
+  color: white;
+  border-radius: 15px;
+  border: none;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.center-to-user button:hover {
+  background-color: #0056b3;
 }
