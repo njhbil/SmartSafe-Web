@@ -158,7 +158,7 @@
                 type="text"
                 name="username"
                 placeholder="Username"
-                class="border border-gray-300 rounded-md p-3 w-full text-black focus:ring-2 focus:ring-blue-500 "
+                class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500 "
                 bind:value={values.username}
             />
             {#if error && error.username}
@@ -168,7 +168,7 @@
                 type="email"
                 name="email"
                 placeholder="Email"
-               class="border border-gray-300 rounded-md p-3 w-full text-black focus:ring-2 focus:ring-blue-500"
+               class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
                 bind:value={values.email}
             />
             {#if error && error.email}
@@ -178,7 +178,7 @@
                 type="password"
                 name="password"
                 placeholder="Password"
-                class="border border-gray-300 rounded-md p-3 w-full text-black focus:ring-2 focus:ring-blue-500"
+                class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
                 bind:value={values.password}
             />
             {#if error && error.password}
@@ -188,7 +188,7 @@
                 type="password"
                 name="passwordConfirmation"
                 placeholder="Confirm Password"
-                class="border border-gray-300 rounded-md p-3 w-full text-black focus:ring-2 focus:ring-blue-500"
+                class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
                 bind:value={values.passwordConfirmation}
             />
             <p class="text-sm m-2">

@@ -53,14 +53,14 @@
           type="email"
           name="email"
           placeholder="Email"
-          class="border border-gray-300 rounded-md p-3 w-full text-black focus:ring-2 focus:ring-blue-500"
+          class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
           bind:value={values.email}
         />
         <input 
           type="password"
           name="password"
           placeholder="Password"
-          class="border border-gray-300 rounded-md p-3 w-full text-black focus:ring-2 focus:ring-blue-500"
+          class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
           bind:value={values.password}
         />
         <p class="text-sm text-gray-200">
