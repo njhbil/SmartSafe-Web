@@ -27,7 +27,7 @@
 1. Clone the repository:
     ```sh
     git clone https://github.com/yourusername/SmartSafe.git
-    cd SmartSafe/backend
+    cd SmartSafe/server
     ```
 
 2. Install dependencies:
