@@ -25,7 +25,7 @@
             <a
                 href="#smartsafe"
                 class="hover:text-blue-400 transition"
-                on:click={(e) => handleHistory(e, "smartsafe")}>Tentang Kita</a
+                on:click={(e) => handleHistory(e, "smartsafe")}>About Us</a
             >
             <a
                 href="#faq"
@@ -35,7 +35,7 @@
             <a
                 href="/signin"
                 class="bg-blue-500 px-5 py-2 rounded-full hover:bg-blue-600 transition"
-                >Masuk</a
+                >Sign In</a
             >
         </nav>
 
@@ -53,7 +53,7 @@
             <a
                 href="#smartsafe"
                 class="block py-2 hover:text-blue-400 transition"
-                on:click={(e) => handleHistory(e, "smartsafe")}>Tentang Kita</a
+                on:click={(e) => handleHistory(e, "smartsafe")}>About Us</a
             >
             <a
                 href="#faq"
@@ -63,7 +63,7 @@
             <a
                 href="/signin"
                 class="block py-2 w-1/2 bg-blue-500 text-center text-white rounded-full hover:bg-blue-600 transition"
-                >Masuk</a
+                >Sign In</a
             >
         </div>
     {/if}

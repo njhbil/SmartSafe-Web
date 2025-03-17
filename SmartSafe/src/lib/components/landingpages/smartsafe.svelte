@@ -37,23 +37,21 @@
                     class="text-lg max-w-2xl font-medium text-justify leading-relaxed"
                     in:fade={{ delay: 400, duration: 800 }}
                 >
-                    SmartSafe adalah aplikasi berbasis website yang berfungsi
-                    untuk mendapatkan informasi terkait daerah rawan kejahatan
-                    masyarakat. Selain itu, SmartSafe juga dilengkapi dengan
-                    fitur <span class="font-bold text-yellow-300"
-                        >telepon darurat</span
+                    SmartSafe is a web-based application designed to provide
+                    information about crime-prone areas. Additionally, SmartSafe
+                    is equipped with an <span class="font-bold text-yellow-300"
+                        >emergency call</span
                     >
-                    dan
-                    <span class="font-bold text-yellow-300">SOS</span> yang bisa
-                    digunakan apabila sedang mengalami masalah terkait kejahatan
-                    masyarakat. Aplikasi ini dibuat sebagai solusi modern dalam menanggulangi
-                    kejahatan masyarakat yang sudah marak terjadi.
+                    and <span class="font-bold text-yellow-300">SOS</span> feature
+                    that can be used in case of crime-related issues. This application
+                    is created as a modern solution to tackle the increasing rate
+                    of crime.
                 </p>
                 <button
                     class="bg-yellow-300 text-black font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-yellow-400 transition duration-300 transform hover:scale-110"
                     in:scale={{ start: 0.8, duration: 500, delay: 600 }}
                 >
-                    Pelajari Lebih Lanjut
+                    Learn More
                 </button>
             {/if}
         </div>

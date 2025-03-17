@@ -9,13 +9,13 @@
             class="hover:bg-blue-300 bg-blue-500 w-1/2 rounded text-white font-bold py-4"
             on:click={() => goto("/signup")}
         >
-            Register
+            Sign Up
         </button>
         <button
             class="hover:bg-blue-300 bg-blue-500 w-1/2 rounded text-white font-bold py-4"
             on:click={() => goto("/signin")}
         >
-            Login
+            Sign In
         </button>
     </div>
 </nav>

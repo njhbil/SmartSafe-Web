@@ -34,7 +34,6 @@
         try {
             setErrors(null);
             setSuccess(null);
-            const response = await resetAPI(values);
 
             if (values.password === "" || values.confirmPassword === "") {
                 setErrors("Please fill in all fields.");
@@ -45,6 +44,8 @@
                 setErrors("Passwords do not match.");
                 return;
             }
+
+            const response = await resetAPI(values);
 
             if (response.success) {
                 setSuccess(response.message);

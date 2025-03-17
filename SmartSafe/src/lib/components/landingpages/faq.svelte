@@ -3,30 +3,28 @@
     import Page3 from "./page3.svelte";
     let faqs = [
         {
-            question: "Apa fungsi utama aplikasi ini?",
-            answer: "Aplikasi ini membantu pengguna mengetahui wilayah rawan kejahatan berdasarkan data yang tersedia. Selain itu, aplikasi menyediakan fitur telepon darurat yang dapat langsung menghubungi pihak berwenang saat dalam keadaan darurat.",
+            question: "What is the main function of this application?",
+            answer: "This application helps users identify crime-prone areas based on available data. Additionally, the app provides an emergency call feature that can directly connect to authorities in case of an emergency.",
             open: false,
         },
         {
-            question:
-                "Bagaimana cara mengetahui daerah rawan kejahatan di sekitar saya?",
-            answer: "Anda dapat membuka peta dalam aplikasi yang menampilkan wilayah rawan kejahatan dengan indikator warna atau ikon tertentu. Data ini diperbarui secara berkala berdasarkan laporan pengguna dan sumber resmi.",
+            question: "How can I find crime-prone areas around me?",
+            answer: "You can open the map in the app which displays crime-prone areas with specific color indicators or icons. This data is regularly updated based on user reports and official sources.",
             open: false,
         },
         {
-            question: "Bagaimana cara menggunakan fitur telepon darurat?",
-            answer: "Fitur telepon darurat dapat diakses melalui tombol khusus dalam aplikasi. Saat ditekan, aplikasi akan langsung menghubungkan Anda dengan nomor darurat terdekat, seperti polisi atau layanan keamanan setempat.",
+            question: "How do I use the emergency call feature?",
+            answer: "The emergency call feature can be accessed through a special button in the app. When pressed, the app will directly connect you to the nearest emergency number, such as the police or local security services.",
             open: false,
         },
         {
-            question:
-                " Apakah data wilayah rawan kejahatan di aplikasi ini akurat?",
-            answer: "Akurasi data bergantung pada laporan pengguna serta data dari sumber resmi. Kami terus memperbarui informasi agar pengguna mendapatkan data terbaru mengenai tingkat kejahatan di suatu wilayah.",
+            question: "Is the data on crime-prone areas in this app accurate?",
+            answer: "The accuracy of the data depends on user reports and official sources. We continuously update the information to ensure users have the latest data on crime levels in an area.",
             open: false,
         },
         {
-            question: "Apakah aplikasi ini bisa digunakan secara offline?",
-            answer: "Beberapa fitur, seperti peta wilayah rawan kejahatan, membutuhkan koneksi internet untuk memperbarui data. Namun, fitur telepon darurat tetap bisa digunakan selama perangkat memiliki sinyal seluler.",
+            question: "Can this app be used offline?",
+            answer: "Some features, such as the crime-prone area map, require an internet connection to update data. However, the emergency call feature can still be used as long as the device has a cellular signal.",
             open: false,
         },
     ];
@@ -78,4 +76,3 @@
         </div>
     </div>
 </Page3>
-

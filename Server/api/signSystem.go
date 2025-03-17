@@ -40,6 +40,8 @@ type Payload struct {
 	RememberMe    bool   `json:"rememberMe"`
 	ResetToken    string `json:"resetToken"`
 	ResetPWDtoken string `json:"resetPWDtoken"`
+	RefreshToken  string `json:"refreshToken"`
+	LoginToken    string `json:"loginToken"`
 }
 
 type params struct {
@@ -145,8 +147,17 @@ func sendJsonResponse(w http.ResponseWriter, status int, message string, ResetTo
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]string{"message": message, "RefreshToken": responeToken})
+		json.NewEncoder(w).Encode(map[string]string{"message": message, "refreshToken": responeToken})
 	}
+}
+
+func sendJsonError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": false,
+		"message": message,
+	})
 }
 
 func Accounts(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +168,7 @@ func Accounts(w http.ResponseWriter, r *http.Request) {
 	err := conn.Model(&accounts).Select()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
@@ -183,7 +194,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		log.Println("Json Decode Error:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -196,7 +207,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	exists, err = conn.Model(new(accounts)).Where("email = ?", req.Email).Exists()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 	if exists {
@@ -208,7 +219,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	exists, err = conn.Model(new(accounts)).Where("username = ?", req.Username).Exists()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 	if exists {
@@ -220,7 +231,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	hash, err := hashPassword(req.Password, p)
 	if err != nil {
 		log.Println("Password Hash Error:", err)
-		http.Error(w, "Password Hash Error", http.StatusInternalServerError)
+		sendJsonError(w, "Password Hash Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -229,8 +240,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	_, err = conn.Model(&req).Insert()
 	if err != nil {
 		log.Println("Database Insert Error:", err)
-		http.Error(w, "Database Insert Error", http.StatusInternalServerError)
-		sendJsonResponse(w, http.StatusInternalServerError, "Database Insert Error")
+		sendJsonError(w, "Database Insert Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -239,7 +249,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-
 	var exists bool
 
 	conn := db.Connect()
@@ -248,7 +257,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Read Body Error:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -256,7 +265,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		log.Println("JSON Decode Error for Accounts:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -264,26 +273,26 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		log.Println("JSON Decode Error for Payload:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
 	if req.Email == "" || req.Password == "" {
 		log.Println("email or password is empty")
-		http.Error(w, "email or password is empty", http.StatusBadRequest)
+		sendJsonError(w, "email or password is empty", http.StatusBadRequest)
 		return
 	}
 
 	exists, err = conn.Model(new(accounts)).Where("email = ?", req.Email).Exists()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	if !exists {
 		log.Println("Email does not exist")
-		http.Error(w, "Email does not exist", http.StatusUnauthorized)
+		sendJsonError(w, "Email does not exist", http.StatusUnauthorized)
 		return
 	}
 
@@ -291,14 +300,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = conn.Model(&account).Where("email = ?", req.Email).Select()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	verify, err := comparePasswordAndHash(req.Password, account.Password)
 	if err != nil {
 		log.Println("Password Hash Error:", err)
-		http.Error(w, "Password Hash Error", http.StatusInternalServerError)
+		sendJsonError(w, "Password Hash Error", http.StatusInternalServerError)
 		return
 	}
 
@@ -306,12 +315,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		if payload.RememberMe {
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"email": account.Email,
-				"exp":   time.Now().Add(time.Minute * 3).Unix(),
+				"exp":   time.Now().Add(time.Hour * 24 * 30).Unix(),
 			})
 			tokenString, err := token.SignedString([]byte(jwtSecret))
 			if err != nil {
 				log.Println("Token Signing Error:", err)
-				http.Error(w, "Token Signing Error", http.StatusInternalServerError)
+				sendJsonError(w, "Token signing error", http.StatusInternalServerError)
 				return
 			}
 			log.Println("Login successful (30 Day)")
@@ -320,12 +329,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		} else {
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"email": account.Email,
-				"exp":   time.Now().Add(time.Minute * 3).Unix(),
+				"exp":   time.Now().Add(time.Hour * 24).Unix(),
 			})
 			tokenString, err := token.SignedString([]byte(jwtSecret))
 			if err != nil {
 				log.Println("Token Signing Error:", err)
-				http.Error(w, "Token Signing Error", http.StatusInternalServerError)
+				sendJsonError(w, "Token signing error", http.StatusInternalServerError)
 				return
 			}
 			log.Println("Login successful (1 Day)")
@@ -335,7 +344,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		log.Println("Password is invalid")
-		http.Error(w, "Password is invalid", http.StatusUnauthorized)
+		sendJsonError(w, "Password is invalid", http.StatusUnauthorized)
 		return
 	}
 }
@@ -357,26 +366,26 @@ func ForgetPassword(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		log.Println("JSON Decode Error for Accounts:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
 	if req.Email == "" {
 		log.Println("email is empty")
-		http.Error(w, "email is empty", http.StatusBadRequest)
+		sendJsonError(w, "email is empty", http.StatusBadRequest)
 		return
 	}
 
 	exists, err = conn.Model(new(accounts)).Where("email = ?", req.Email).Exists()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	if !exists {
 		log.Println("Email does not exist")
-		http.Error(w, "Email does not exist", http.StatusUnauthorized)
+		sendJsonError(w, "Email does not exist", http.StatusUnauthorized)
 		return
 	}
 
@@ -384,7 +393,7 @@ func ForgetPassword(w http.ResponseWriter, r *http.Request) {
 	err = conn.Model(&account).Where("email = ?", req.Email).Select()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
@@ -395,20 +404,38 @@ func ForgetPassword(w http.ResponseWriter, r *http.Request) {
 	tokenString, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
 		log.Println("Token Signing Error:", err)
-		http.Error(w, "Token Signing Error", http.StatusInternalServerError)
+		sendJsonError(w, "Token signing error", http.StatusInternalServerError)
 		return
 	}
 
+	clientURL := os.Getenv("CLIENT_URL")
+
 	m := gomail.NewMessage()
-	m.SetHeader("From", "me@arpthef.my.id")
+	m.SetHeader("From", os.Getenv("WEBMAIL"))
 	m.SetHeader("To", account.Email)
 	m.SetHeader("Subject", "Reset Password")
-	m.SetBody("text/html", "Click <a href='http://localhost:5173/resetpassword/"+tokenString+"'>here</a> to reset your password")
+	m.SetBody("text/html", `
+		<html>
+			<body>
+				<div style="text-align: center; width: 50%; margin: 0 auto;">
+					<h1>Reset Password</h1>
+					<p>We received a request to reset your password from `+req.Email+`</p>
+					<p>Click the link below to reset your password</p>
+					<a class="button" title="Reset Password" href="`+clientURL+`/resetpassword?token=`+tokenString+`" style="width: 100%; background: #22D172; text-decoration: none; display: inline-block; padding: 10px 0; color: #fff; font-size: 14px; line-height: 21px; text-align: center; font-weight: bold; border-radius: 7px;">Reset Password</a>
+				</div>
+				<div style="text-align: start; margin-top: 20px;">
+					<td style="font-size: 14px; line-height: 170%; font-weight: 400; color: #000000; letter-spacing: 0.01em;">
+                        Best regards, <br><strong>SmartSafe Team</strong>
+                    </td>
+				</div>
+			</body>
+		</html>
+		`)
 
 	d := gomail.NewDialer("live.smtp.mailtrap.io", 587, "api", os.Getenv("MAILTRAP_TOKEN"))
 	if err := d.DialAndSend(m); err != nil {
 		log.Println("Email Sending Error:", err)
-		http.Error(w, "Email Sending Error", http.StatusInternalServerError)
+		sendJsonError(w, "Email sending error", http.StatusInternalServerError)
 		return
 	}
 
@@ -432,7 +459,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Read Body Error:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -440,7 +467,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		log.Println("JSON Decode Error for Accounts:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -448,7 +475,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		log.Println("JSON Decode Error for Payload:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -460,7 +487,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	if payload.ResetPWDtoken == "" {
 		log.Println("Error: Token is empty")
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
@@ -476,41 +503,41 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	claims, ok := token.Claims.(*jwt.MapClaims)
 	if !ok || !token.Valid {
 		log.Println("Token is invalid or claims are malformed")
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
 	email, ok := (*claims)["email"].(string)
 	if !ok || email == "" {
 		log.Println("Email claim missing or invalid")
-		http.Error(w, "Invalid token data", http.StatusUnauthorized)
+		sendJsonError(w, "Invalid token data", http.StatusUnauthorized)
 		return
 	}
 
 	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
 	if err != nil {
 		log.Println("Database Query Error:", err)
-		http.Error(w, "Database Query Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	if !exists {
 		log.Println("Email does not exist")
-		http.Error(w, "Email does not exist", http.StatusUnauthorized)
+		sendJsonError(w, "Email does not exist", http.StatusUnauthorized)
 		return
 	}
 
 	hash, err := hashPassword(req.Password, p)
 	if err != nil {
 		log.Println("Password Hash Error:", err)
-		http.Error(w, "Password Hash Error", http.StatusInternalServerError)
+		sendJsonError(w, "Password Hash Error", http.StatusInternalServerError)
 		return
 	}
 
 	_, err = conn.Model(new(accounts)).Set("password = ?", hash).Where("email = ?", email).Update()
 	if err != nil {
 		log.Println("Database Update Error:", err)
-		http.Error(w, "Database Update Error", http.StatusInternalServerError)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
@@ -518,6 +545,163 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	sendJsonResponse(w, http.StatusOK, "Password reset successfully")
 }
 
+func RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var exists bool
+
+	conn := db.Connect()
+	defer conn.Close()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Read Body Error:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var payload Payload
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		log.Println("JSON Decode Error for Payload:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if payload.RefreshToken == "" {
+		log.Println("Error: Token is empty")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	cleanToken := strings.TrimSpace(payload.RefreshToken)
+
+	token, err := jwt.ParseWithClaims(cleanToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil {
+		log.Println("Token parsing error:", err)
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	claims, ok := token.Claims.(*jwt.MapClaims)
+	if !ok || !token.Valid {
+		log.Println("Token is invalid or claims are malformed")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	email, ok := (*claims)["email"].(string)
+	if !ok || email == "" {
+		log.Println("Email claim missing or invalid")
+		sendJsonError(w, "Invalid token data", http.StatusUnauthorized)
+		return
+	}
+
+	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
+		log.Println("Email does not exist")
+		sendJsonError(w, "Email does not exist", http.StatusUnauthorized)
+		return
+	}
+
+	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": email,
+		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	tokenString, err := newToken.SignedString([]byte(jwtSecret))
+	if err != nil {
+		log.Println("Token Signing Error:", err)
+		sendJsonError(w, "Token signing error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Token refreshed successfully")
+	sendJsonResponse(w, http.StatusOK, "Token refreshed successfully", tokenString)
+}
+
+func VerifyToken(w http.ResponseWriter, r *http.Request) {
+	var exists bool
+
+	conn := db.Connect()
+	defer conn.Close()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Read Body Error:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var payload Payload
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		log.Println("JSON Decode Error for Payload:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if payload.LoginToken == "" {
+		log.Println("Error: Token is empty")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	cleanToken := strings.TrimSpace(payload.LoginToken)
+
+	token, err := jwt.ParseWithClaims(cleanToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil {
+		log.Println("Token parsing error:", err)
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	claims, ok := token.Claims.(*jwt.MapClaims)
+	if !ok || !token.Valid {
+		log.Println("Token is invalid or claims are malformed")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	email, ok := (*claims)["email"].(string)
+	if !ok || email == "" {
+		log.Println("Email claim missing or invalid")
+		sendJsonError(w, "Invalid token data", http.StatusUnauthorized)
+		return
+	}
+
+	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
+		log.Println("Email does not exist")
+		sendJsonError(w, "Email does not exist", http.StatusUnauthorized)
+		return
+	}
+
+	log.Println("Token is valid")
+	sendJsonResponse(w, http.StatusOK, "Token is valid")
+}
 func NewWithClaims(claims jwt.Claims, method jwt.SigningMethod) *Token {
 	return &Token{
 		Method: method,

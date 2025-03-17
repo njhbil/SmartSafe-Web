@@ -61,4 +61,3 @@
         class="border-t border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-sm"
     ></div>
 </footer>
-

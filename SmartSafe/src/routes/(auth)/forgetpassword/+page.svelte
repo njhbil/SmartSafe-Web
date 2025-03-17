@@ -11,23 +11,45 @@
         success = message;
     }
 
+    let timerMessage: any = null;
+    function setTimerMessage(message: any) {
+        timerMessage = message;
+    }
+
     let values = {
         email: "",
     };
 
+    let submit = false;
+
     const handleSubmit = async (value: { email: string }) => {
+        if (submit) {
+            setTimeout(() => {
+                submit = false;
+            }, 30000);
+        }
+
         try {
             setErrors(null);
             setSuccess(null);
-            const response = await forgetAPI(value);
+
+            if (submit) {
+                setErrors("Please wait 30 seconds before trying again.");
+                return;
+            }
 
             if (value.email === "") {
                 setErrors("Please fill in all fields.");
                 return;
             }
 
+            setSuccess("Sending email...");
+
+            const response = await forgetAPI(value);
+
             if (response.success) {
                 setSuccess(response.message);
+                submit = true;
             } else {
                 setErrors("Email is invalid.");
             }
@@ -49,10 +71,10 @@
                 bind:value={values.email}
             />
             {#if error}
-                <p class="text-red-500">{error}</p>
+                <p class="text-red-500 text-center">{error}</p>
             {/if}
             {#if success}
-                <p class="text-green text-center">{success}</p>
+                <p class="text-green-500 text-center">{success}</p>
             {/if}
             <button
                 type="submit"
@@ -61,6 +83,8 @@
             >
                 Send Email
             </button>
+
+            <p class="text-red-500 text-center">{timerMessage}</p>
         </form>
     </section>
 </main>
