@@ -1,74 +1,84 @@
 <script lang="ts">
-    import forgetAPI from "$lib/api/forgetAPI";
+    import { enhance } from "$app/forms";
 
-    let error: any = null;
-    function setErrors(errors: any) {
-        error = errors;
-    }
+    type FormData = {
+        error?: string;
+        success?: string;
+    };
 
-    let success: any = null;
-    function setSuccess(message: any) {
-        success = message;
-    }
+    export let form: FormData | null = null;
+    let error = form?.error || null;
+    let success = form?.success || null;
+    let isSubmitting = false;
 
     let timerMessage: any = null;
     function setTimerMessage(message: any) {
         timerMessage = message;
     }
 
-    let values = {
-        email: "",
-    };
+    let timer: boolean = true;
+    let time = 30;
+    let disableButton = false;
 
-    let submit = false;
-
-    const handleSubmit = async (value: { email: string }) => {
-        if (submit) {
-            setTimeout(() => {
-                submit = false;
-            }, 30000);
+    function countdown() {
+        if (timer) {
+            time--;
+            setTimerMessage(`You can try again in ${time} seconds`);
+            if (time === 0) {
+                timer = false;
+                disableButton = false;
+                setTimerMessage("");
+            }
+            setTimeout(countdown, 1000);
         }
+    }
 
-        try {
-            setErrors(null);
-            setSuccess(null);
+    function handleEnhance() {
+        return async ({
+            result,
+        }: {
+            result: {
+                type: string;
+                data?: { error?: string; success?: string };
+            };
+        }) => {
+            isSubmitting = false;
+            error = null;
+            success = null;
 
-            if (submit) {
-                setErrors("Please wait 30 seconds before trying again.");
-                return;
+            if (result.type === "failure") {
+                error = result.data?.error || null;
+            } else if (result.type === "success") {
+                success = result.data?.success || null;
+                disableButton = true;
+                countdown();
+                setTimeout(() => {
+                    timer = false;
+                    setTimerMessage("");
+                }, time * 1000);
             }
-
-            if (value.email === "") {
-                setErrors("Please fill in all fields.");
-                return;
-            }
-
-            setSuccess("Sending email...");
-
-            const response = await forgetAPI(value);
-
-            if (response.success) {
-                setSuccess(response.message);
-                submit = true;
-            } else {
-                setErrors("Email is invalid.");
-            }
-        } catch (error) {
-            console.error(error);
-            setErrors("An error occurred, please try again later.");
-        }
-    };
+        };
+    }
 </script>
 
 <main>
     <section class="h-screen flex items-center justify-center">
-        <form class="flex flex-col items-center">
+        <form
+            class="flex flex-col items-center"
+            method="POST"
+            action="?/forgetpassword"
+            use:enhance={({}) => {
+                isSubmitting = true;
+
+                return handleEnhance();
+            }}
+        >
             <input
                 type="email"
                 name="email"
                 placeholder="Email"
                 class="border border-gray-300 rounded p-2 m-2"
-                bind:value={values.email}
+                required
             />
             {#if error}
                 <p class="text-red-500 text-center">{error}</p>
@@ -76,15 +86,18 @@
             {#if success}
                 <p class="text-green-500 text-center">{success}</p>
             {/if}
+            <p class="text-black text-center">{timerMessage}</p>
             <button
                 type="submit"
                 class="bg-blue-500 text-white rounded p-2 m-2"
-                on:click|preventDefault={() => handleSubmit(values)}
+                disabled={isSubmitting || disableButton}
             >
-                Send Email
+                {#if isSubmitting}
+                    Sending email...
+                {:else}
+                    Send Email
+                {/if}
             </button>
-
-            <p class="text-red-500 text-center">{timerMessage}</p>
         </form>
     </section>
 </main>

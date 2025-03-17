@@ -22,7 +22,7 @@
         error = result.data?.error || null;
       } else if (result.type === "success") {
         success = "Login successful!";
-        return setTimeout(() => {
+        setTimeout(() => {
           window.location.href = "/maps";
         }, 1000);
       }

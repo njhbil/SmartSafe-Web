@@ -421,7 +421,7 @@ func ForgetPassword(w http.ResponseWriter, r *http.Request) {
 					<h1>Reset Password</h1>
 					<p>We received a request to reset your password from `+req.Email+`</p>
 					<p>Click the link below to reset your password</p>
-					<a class="button" title="Reset Password" href="`+clientURL+`/resetpassword?token=`+tokenString+`" style="width: 100%; background: #22D172; text-decoration: none; display: inline-block; padding: 10px 0; color: #fff; font-size: 14px; line-height: 21px; text-align: center; font-weight: bold; border-radius: 7px;">Reset Password</a>
+		<a class="button" title="Reset Password" href="`+clientURL+`/resetpassword?token=`+tokenString+`" style="width: 100%; background: #22D172; text-decoration: none; display: inline-block; padding: 10px 0; color: #fff; font-size: 14px; line-height: 21px; text-align: center; font-weight: bold; border-radius: 7px;">Reset Password</a>
 				</div>
 				<div style="text-align: start; margin-top: 20px;">
 					<td style="font-size: 14px; line-height: 170%; font-weight: 400; color: #000000; letter-spacing: 0.01em;">
