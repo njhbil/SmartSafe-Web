@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
+    import sendEmailOTP from "$lib/api/sendEmailOTP";
 
     type FormData = {
         error?: string;
@@ -10,6 +11,30 @@
     let error = form?.error || null;
 
     let success: any = null;
+
+    let isSubmitting = false;
+    let timerMessage: any = null;
+    function setTimerMessage(message: any) {
+        timerMessage = message;
+    }
+
+    let timer: boolean = true;
+    let time = 30;
+    let disableButton = false;
+
+    function countdown() {
+        if (time > 0) {
+            setTimerMessage(
+                `Email sent successfully! You can try again in ${time} seconds.`,
+            );
+            time--;
+            setTimeout(countdown, 1000);
+        } else {
+            timer = false;
+            disableButton = false;
+            setTimerMessage("");
+        }
+    }
 
     function handleEnhance() {
         return async ({
@@ -29,6 +54,35 @@
                 }, 1000);
             }
         };
+    }
+
+    async function sendOTP() {
+        error = null;
+        success = null;
+        const emailInput = document.querySelector(
+            'input[name="email"]',
+        ) as HTMLInputElement | null;
+        const email = emailInput?.value;
+        if (email) {
+            try {
+                const response = await sendEmailOTP({ email });
+                if (response.success) {
+                    success = "OTP sent successfully!";
+                    disableButton = true;
+                    countdown();
+                    setTimeout(() => {
+                        timer = false;
+                        setTimerMessage("");
+                    }, time * 1000);
+                } else {
+                    error = response.error || "Failed to send OTP.";
+                }
+            } catch (err) {
+                error = "Failed to send OTP. Please try again.";
+            }
+        } else {
+            error = "Please enter your email first.";
+        }
     }
 </script>
 
@@ -73,6 +127,27 @@
                     class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
                     required
                 />
+                <div class="flex flex-col gap-2">
+                    <div class="flex flex-row gap-2">
+                        <input
+                            type="one-time-code"
+                            name="oneTimeCode"
+                            placeholder="OTP (6 Digits)"
+                            class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                        <button
+                            type="button"
+                            class="bg-blue-500 hover:bg-blue-700 text-white rounded-md p-3 w-1/2 transition-all duration-300"
+                            on:click={sendOTP}
+                            disabled={disableButton}
+                        >
+                            {disableButton
+                                ? `Resend OTP (${time})`
+                                : "Send OTP"}
+                        </button>
+                    </div>
+                </div>
                 <p class="text-sm m-2">
                     <a
                         href="/signin"

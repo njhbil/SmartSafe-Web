@@ -3,7 +3,9 @@
 </script>
 
 <slot />
-<nav class="bg-blue-500 text-white h-10 text-center fixed bottom-0 w-full">
+<nav
+    class="bg-blue-500 text-white h-10 text-center fixed bottom-0 w-full overflow-hidden"
+>
     <div class="flex">
         <button
             class="hover:bg-blue-300 bg-blue-500 w-1/3 text-white font-bold py-4"

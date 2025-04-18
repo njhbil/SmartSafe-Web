@@ -21,15 +21,16 @@
     let disableButton = false;
 
     function countdown() {
-        if (timer) {
+        if (time > 0) {
+            setTimerMessage(
+                `Email sent successfully! You can try again in ${time} seconds.`,
+            );
             time--;
-            setTimerMessage(`You can try again in ${time} seconds`);
-            if (time === 0) {
-                timer = false;
-                disableButton = false;
-                setTimerMessage("");
-            }
             setTimeout(countdown, 1000);
+        } else {
+            timer = false;
+            disableButton = false;
+            setTimerMessage("");
         }
     }
 

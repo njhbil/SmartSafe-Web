@@ -14,6 +14,10 @@
         window.addEventListener("resize", updateViewPortHeight);
         window.addEventListener("orientationchange", updateViewPortHeight);
 
+        mapElement.addEventListener("touchmove", (event) => {
+            event.preventDefault();
+        });
+
         return () => {
             window.removeEventListener("resize", updateViewPortHeight);
             window.removeEventListener(
@@ -25,7 +29,7 @@
 </script>
 
 <main class="map-container absolute top-0 w-full overflow-hidden">
-    <section class="map-container absolute w-full">
-        <div id="maps" class="map-container" bind:this={mapElement}></div>
+    <section class="map-wrapper absolute w-full overflow-hidden">
+        <div id="maps" class="map-element" bind:this={mapElement}></div>
     </section>
 </main>

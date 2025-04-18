@@ -5,6 +5,7 @@ import (
 
 	"flag"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 )
@@ -55,13 +56,20 @@ func setupRoutes() {
 	http.HandleFunc("/api/register", api.Register)
 	http.HandleFunc("/api/accounts", api.Accounts)
 	http.HandleFunc("/api/login", api.Login)
+	http.HandleFunc("/api/logout", api.Logout)
 	http.HandleFunc("/api/forgetpassword", api.ForgetPassword)
 	http.HandleFunc("/api/resetpassword", api.ResetPassword)
 	http.HandleFunc("/api/refreshtoken", api.RefreshToken)
 	http.HandleFunc("/api/verifytoken", api.VerifyToken)
+	http.HandleFunc("/api/verifyemailotp", api.VerifyEmailOTP)
+	http.HandleFunc("/api/sendemailotp", api.SendEmailOTP)
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: .env file not found")
+	}
 	flag.Parse()
 	log.SetFlags(0)
 	setupRoutes()

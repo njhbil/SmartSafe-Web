@@ -1,5 +1,6 @@
 import { fail } from "@sveltejs/kit";
 import registerAPI from "$lib/api/registerAPI";
+import verifyEmailOTP from "$lib/api/verifyEmailOTP";
 import type { Actions } from "../signin/$types";
 
 export const actions: Actions = {
@@ -10,6 +11,7 @@ export const actions: Actions = {
       const email = formData.get("email") as string;
       const password = formData.get("password") as string;
       const confirmPassword = formData.get("confirmPassword") as string;
+      const oneTimeCode = formData.get("oneTimeCode") as string;
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const specialChars = /[!@#$%^&*(),.?":{}|<>]/;
@@ -40,6 +42,16 @@ export const actions: Actions = {
 
       if (password !== confirmPassword) {
         return fail(400, { error: "Passwords do not match." });
+      }
+
+      if (!oneTimeCode) {
+        return fail(400, { error: "Please enter the one-time code." });
+      }
+
+      const verifyResponse = await verifyEmailOTP({ email, oneTimeCode });
+
+      if (!verifyResponse.success) {
+        return fail(400, { error: "Invalid one-time code." });
       }
 
       const response = await registerAPI({ username, email, password });

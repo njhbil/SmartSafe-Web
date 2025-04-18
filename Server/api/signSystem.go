@@ -2,6 +2,7 @@ package signSystem
 
 import (
 	"SmartSafe/database"
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/argon2"
 	gomail "gopkg.in/mail.v2"
 )
@@ -30,10 +32,20 @@ var (
 	clientURL = os.Getenv("CLIENT_URL")
 )
 
+var rdb = redis.NewClient(&redis.Options{
+	Addr:     os.Getenv("REDIS_URL"),
+	DB:       0, // use default DB
+	Password: os.Getenv("REDIS_PASSWORD"),
+})
+
 type accounts struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type verifytokens struct {
+	Token string `json:"token"`
 }
 
 type Payload struct {
@@ -42,6 +54,11 @@ type Payload struct {
 	ResetPWDtoken string `json:"resetPWDtoken"`
 	RefreshToken  string `json:"refreshToken"`
 	LoginToken    string `json:"loginToken"`
+}
+
+type OTPPayload struct {
+	Email string `json:"email"`
+	OTP   string `json:"oneTimeCode"`
 }
 
 type params struct {
@@ -61,13 +78,13 @@ type Token struct {
 	Valid     bool
 }
 
-func hashPassword(password string, p *params) (string, error) {
+func hashData(Data string, p *params) (string, error) {
 	salt, err := generateRandomBytes(p.SaltLength)
 	if err != nil {
 		return "", err
 	}
 
-	hash := argon2.IDKey([]byte(password), salt, p.Iterations, p.Memory, p.Parallelism, p.KeyLength)
+	hash := argon2.IDKey([]byte(Data), salt, p.Iterations, p.Memory, p.Parallelism, p.KeyLength)
 	encodedHash := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, p.Memory, p.Iterations, p.Parallelism,
 		base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(hash))
 
@@ -84,7 +101,7 @@ func generateRandomBytes(n uint32) ([]byte, error) {
 	return b, nil
 }
 
-func comparePasswordAndHash(password, encodedHash string) (match bool, err error) {
+func compareDataAndHash(password, encodedHash string) (match bool, err error) {
 	p, salt, hash, err := decodeHash(encodedHash)
 	if err != nil {
 		return false, err
@@ -228,7 +245,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := hashPassword(req.Password, p)
+	hash, err := hashData(req.Password, p)
 	if err != nil {
 		log.Println("Password Hash Error:", err)
 		sendJsonError(w, "Password Hash Error", http.StatusInternalServerError)
@@ -248,7 +265,174 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	sendJsonResponse(w, http.StatusOK, "User registered successfully")
 }
 
+func SendEmailOTP(w http.ResponseWriter, r *http.Request) {
+	var exists bool
+
+	conn := db.Connect()
+	defer conn.Close()
+
+	var req OTPPayload
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		log.Println("JSON Decode Error:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	email := req.Email
+	if email == "" {
+		log.Println("Email is empty")
+		sendJsonError(w, "Email is required", http.StatusBadRequest)
+		return
+	}
+
+	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if exists {
+		log.Println("Email already exists")
+		sendJsonError(w, "Email already exists", http.StatusConflict)
+		return
+	}
+
+	log.Println("Received OTP request for:", email)
+
+	otp, err := GenerateRandomOTP()
+	if err != nil {
+		log.Println("OTP Generation Error:", err)
+		sendJsonError(w, "OTP generation error", http.StatusInternalServerError)
+		return
+	}
+
+	err = StoreOTP(email, otp)
+	if err != nil {
+		log.Println("OTP Storage Error:", err)
+		sendJsonError(w, "OTP storage error", http.StatusInternalServerError)
+		return
+	}
+	m := gomail.NewMessage()
+	m.SetHeader("From", os.Getenv("WEBMAIL"))
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", "Your OTP Code")
+	m.SetBody("text/html", `
+		<html>
+			<body>
+				<div style="text-align: center; width: 50%; margin: 0 auto;">
+					<h1>OTP</h1>
+					<p>We received a request to send you an OTP code</p>
+					<p>Use the OTP code below to verify your email</p>
+					<p>OTP Code: <strong>`+otp+`</strong></p>
+					</div>
+				<div style="text-align: start; margin-top: 20px;">
+					<td style="font-size: 14px; line-height: 170%; font-weight: 400; color: #000000; letter-spacing: 0.01em;">
+                        Best regards, <br><strong>SmartSafe Team</strong>
+                    </td>
+				</div>
+			</body>
+		</html>
+		`)
+
+	d := gomail.NewDialer("live.smtp.mailtrap.io", 587, "api", os.Getenv("MAILTRAP_TOKEN"))
+	if err := d.DialAndSend(m); err != nil {
+		log.Println("Email Sending Error:", err)
+		sendJsonError(w, "Email sending error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("OTP sent successfully")
+	sendJsonResponse(w, http.StatusOK, "OTP sent successfully")
+}
+
+func VerifyEmailOTP(w http.ResponseWriter, r *http.Request) {
+	var req OTPPayload
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		log.Println("Json Decode Error:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	email := req.Email
+	otp := req.OTP
+
+	if email == "" || otp == "" {
+		log.Println("email or otp is empty")
+		sendJsonError(w, "email or otp is empty", http.StatusBadRequest)
+		return
+	}
+
+	storedOTP, err := RetrieveOTP(email)
+	if err != nil {
+		log.Println("OTP Retrieval Error:", err)
+		sendJsonError(w, "OTP retrieval error", http.StatusInternalServerError)
+		return
+	}
+
+	if storedOTP != otp {
+		log.Println("Invalid OTP")
+		sendJsonError(w, "Invalid OTP", http.StatusUnauthorized)
+		return
+	}
+
+	err = DeleteOTP(email)
+	if err != nil {
+		log.Println("OTP Deletion Error:", err)
+		sendJsonError(w, "OTP deletion error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("OTP verified successfully")
+	sendJsonResponse(w, http.StatusOK, "OTP verified successfully")
+
+}
+
+func GenerateRandomOTP() (string, error) {
+	const OTPLength = 6
+
+	otpBytes := make([]byte, OTPLength)
+	_, err := rand.Read(otpBytes)
+	if err != nil {
+		return "", err
+	}
+
+	otp := ""
+
+	for _, b := range otpBytes {
+		otp += fmt.Sprintf("%d", b%10)
+	}
+
+	return otp, nil
+}
+
+func StoreOTP(email, otp string) error {
+	ctx := context.Background()
+	expiresAt := time.Now().Add(5 * time.Minute)
+	return rdb.Set(ctx, email, otp, expiresAt.Sub(time.Now())).Err()
+}
+
+func RetrieveOTP(email string) (string, error) {
+	ctx := context.Background()
+	return rdb.Get(ctx, email).Result()
+}
+
+func DeleteOTP(email string) error {
+	ctx := context.Background()
+	return rdb.Del(ctx, email).Err()
+}
+
 func Login(w http.ResponseWriter, r *http.Request) {
+	p := &params{
+		Memory:      64 * 1024,
+		Iterations:  3,
+		Parallelism: 2,
+		SaltLength:  16,
+		KeyLength:   32,
+	}
+
 	var exists bool
 
 	conn := db.Connect()
@@ -273,6 +457,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		log.Println("JSON Decode Error for Payload:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var verifyToken verifytokens
+	err = json.Unmarshal(body, &verifyToken)
+	if err != nil {
+		log.Println("JSON Decode Error for Token:", err)
 		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
@@ -304,7 +496,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	verify, err := comparePasswordAndHash(req.Password, account.Password)
+	verify, err := compareDataAndHash(req.Password, account.Password)
 	if err != nil {
 		log.Println("Password Hash Error:", err)
 		sendJsonError(w, "Password Hash Error", http.StatusInternalServerError)
@@ -323,6 +515,23 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				sendJsonError(w, "Token signing error", http.StatusInternalServerError)
 				return
 			}
+
+			tokenHash, err := hashData(tokenString, p)
+			if err != nil {
+				log.Println("Token Hash Error:", err)
+				sendJsonError(w, "Token Hash Error", http.StatusInternalServerError)
+				return
+			}
+
+			verifyToken.Token = tokenHash
+
+			_, err = conn.Model(&verifyToken).Insert()
+			if err != nil {
+				log.Println("Database Insert Error:", err)
+				sendJsonError(w, "Database Insert Error", http.StatusInternalServerError)
+				return
+			}
+
 			log.Println("Login successful (30 Day)")
 			sendJsonResponse(w, http.StatusOK, "Login successful", tokenString)
 			return
@@ -337,6 +546,23 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				sendJsonError(w, "Token signing error", http.StatusInternalServerError)
 				return
 			}
+
+			tokenHash, err := hashData(tokenString, p)
+			if err != nil {
+				log.Println("Token Hash Error:", err)
+				sendJsonError(w, "Token Hash Error", http.StatusInternalServerError)
+				return
+			}
+
+			verifyToken.Token = tokenHash
+
+			_, err = conn.Model(&verifyToken).Insert()
+			if err != nil {
+				log.Println("Database Insert Error:", err)
+				sendJsonError(w, "Database Insert Error", http.StatusInternalServerError)
+				return
+			}
+
 			log.Println("Login successful (1 Day)")
 			sendJsonResponse(w, http.StatusOK, "Login successful", tokenString)
 			return
@@ -527,7 +753,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := hashPassword(req.Password, p)
+	hash, err := hashData(req.Password, p)
 	if err != nil {
 		log.Println("Password Hash Error:", err)
 		sendJsonError(w, "Password Hash Error", http.StatusInternalServerError)
@@ -574,6 +800,27 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	cleanToken := strings.TrimSpace(payload.RefreshToken)
 
+	var verifyToken verifytokens
+	err = conn.Model(&verifyToken).Where("token = ?", cleanToken).Select()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	verify, err := compareDataAndHash(cleanToken, verifyToken.Token)
+	if err != nil {
+		log.Println("Token Hash Error:", err)
+		sendJsonError(w, "Token Hash Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !verify {
+		log.Println("Token is invalid")
+		sendJsonError(w, "Token is invalid", http.StatusUnauthorized)
+		return
+	}
+
 	token, err := jwt.ParseWithClaims(cleanToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -616,7 +863,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email": email,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		"exp":   time.Now().Add(time.Hour * 1).Unix(),
 	})
 
 	tokenString, err := newToken.SignedString([]byte(jwtSecret))
@@ -702,6 +949,53 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 	log.Println("Token is valid")
 	sendJsonResponse(w, http.StatusOK, "Token is valid")
 }
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	var exists bool
+
+	conn := db.Connect()
+	defer conn.Close()
+
+	var payload Payload
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		log.Println("JSON Decode Error:", err)
+		sendJsonError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if payload.RefreshToken == "" {
+		log.Println("Error: Token is empty")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	cleanToken := strings.TrimSpace(payload.RefreshToken)
+
+	exists, err = conn.Model(new(accounts)).Where("token = ?", cleanToken).Exists()
+	if err != nil {
+		log.Println("Database Query Error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if !exists {
+		log.Println("Token does not exist")
+		sendJsonError(w, "Token does not exist", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = conn.Model(new(accounts)).Where("token = ?", cleanToken).Delete()
+	if err != nil {
+		log.Println("Database Delete Error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Logout successful")
+	sendJsonResponse(w, http.StatusOK, "Logout successful")
+}
+
 func NewWithClaims(claims jwt.Claims, method jwt.SigningMethod) *Token {
 	return &Token{
 		Method: method,
