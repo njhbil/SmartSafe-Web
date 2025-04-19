@@ -800,24 +800,31 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	cleanToken := strings.TrimSpace(payload.RefreshToken)
 
-	var verifyToken verifytokens
-	err = conn.Model(&verifyToken).Where("token = ?", cleanToken).Select()
+	var verifyTokens []verifytokens
+	err = conn.Model(new(verifytokens)).Select(&verifyTokens)
 	if err != nil {
-		log.Println("Database Query Error:", err)
+		log.Println("Database query error:", err)
 		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	verify, err := compareDataAndHash(cleanToken, verifyToken.Token)
-	if err != nil {
-		log.Println("Token Hash Error:", err)
-		sendJsonError(w, "Token Hash Error", http.StatusInternalServerError)
-		return
+	var isValid bool
+	for _, token := range verifyTokens {
+		isValid, err = compareDataAndHash(cleanToken, token.Token)
+		if err != nil {
+			log.Println("Failed to compare token hash:", err)
+			sendJsonError(w, "Token comparison error", http.StatusInternalServerError)
+			return
+		}
+
+		if isValid {
+			break
+		}
 	}
 
-	if !verify {
-		log.Println("Token is invalid")
-		sendJsonError(w, "Token is invalid", http.StatusUnauthorized)
+	if !isValid {
+		log.Println("Invalid token: no match found in the database")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
@@ -850,7 +857,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
 	if err != nil {
-		log.Println("Database Query Error:", err)
+		log.Println("Database Query Error Accounts:", err)
 		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -935,7 +942,7 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 
 	exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
 	if err != nil {
-		log.Println("Database Query Error:", err)
+		log.Println("Database Query Error Accounts:", err)
 		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
