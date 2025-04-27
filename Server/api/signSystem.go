@@ -808,6 +808,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//TO-DO: change the logic for checking the token in the database to be more efficient and secure
 	var isValid bool
 	for _, token := range verifyTokens {
 		isValid, err = compareDataAndHash(cleanToken, token.Token)
@@ -897,7 +898,11 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var payload Payload
+	var payload struct {
+		LoginToken   string `json:"loginToken"`
+		RefreshToken string `json:"refreshToken"`
+	}
+
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		log.Println("JSON Decode Error for Payload:", err)
@@ -906,14 +911,93 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if payload.LoginToken == "" {
-		log.Println("Error: Token is empty")
-		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		log.Println("Error: Login token is empty")
+		sendJsonError(w, "Invalid login token", http.StatusUnauthorized)
 		return
 	}
 
-	cleanToken := strings.TrimSpace(payload.LoginToken)
+	cleanLoginToken := strings.TrimSpace(payload.LoginToken)
 
-	token, err := jwt.ParseWithClaims(cleanToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(cleanLoginToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	if err == nil && token.Valid {
+		claims, ok := token.Claims.(*jwt.MapClaims)
+		if !ok {
+			log.Println("Claims are malformed")
+			sendJsonError(w, "Invalid token data", http.StatusUnauthorized)
+			return
+		}
+
+		email, ok := (*claims)["email"].(string)
+		if !ok || email == "" {
+			log.Println("Email claim missing or invalid")
+			sendJsonError(w, "Invalid token data", http.StatusUnauthorized)
+			return
+		}
+
+		exists, err = conn.Model(new(accounts)).Where("email = ?", email).Exists()
+		if err != nil {
+			log.Println("Database Query Error Accounts:", err)
+			sendJsonError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		if !exists {
+			log.Println("Email does not exist")
+			sendJsonError(w, "Email does not exist", http.StatusUnauthorized)
+			return
+		}
+
+		log.Println("Login token is valid")
+		sendJsonResponse(w, http.StatusOK, "Token is valid")
+		return
+	}
+
+	if payload.RefreshToken == "" {
+		log.Println("Login token is invalid and no refresh token provided")
+		sendJsonError(w, "Invalid token and no refresh token", http.StatusUnauthorized)
+		return
+	}
+
+	log.Println("Login token is invalid. Attempting to refresh with refresh token.")
+
+	cleanRefreshToken := strings.TrimSpace(payload.RefreshToken)
+
+	var verifyTokens []verifytokens
+	err = conn.Model(new(verifytokens)).Select(&verifyTokens)
+	if err != nil {
+		log.Println("Database query error:", err)
+		sendJsonError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	//TO-DO: change the logic for checking the token in the database to be more efficient and secure
+	var isValid bool
+	for _, token := range verifyTokens {
+		isValid, err = compareDataAndHash(cleanRefreshToken, token.Token)
+		if err != nil {
+			log.Println("Failed to compare token hash:", err)
+			sendJsonError(w, "Token comparison error", http.StatusInternalServerError)
+			return
+		}
+
+		if isValid {
+			break
+		}
+	}
+
+	if !isValid {
+		log.Println("Invalid refresh token: no match found in the database")
+		sendJsonError(w, "Invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+
+	refreshToken, err := jwt.ParseWithClaims(cleanRefreshToken, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -921,22 +1005,22 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		log.Println("Token parsing error:", err)
-		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+		log.Println("Refresh token parsing error:", err)
+		sendJsonError(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
-	claims, ok := token.Claims.(*jwt.MapClaims)
-	if !ok || !token.Valid {
-		log.Println("Token is invalid or claims are malformed")
-		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
+	refreshClaims, ok := refreshToken.Claims.(*jwt.MapClaims)
+	if !ok || !refreshToken.Valid {
+		log.Println("Refresh token is invalid or claims are malformed")
+		sendJsonError(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
-	email, ok := (*claims)["email"].(string)
+	email, ok := (*refreshClaims)["email"].(string)
 	if !ok || email == "" {
-		log.Println("Email claim missing or invalid")
-		sendJsonError(w, "Invalid token data", http.StatusUnauthorized)
+		log.Println("Email claim missing or invalid in refresh token")
+		sendJsonError(w, "Invalid refresh token data", http.StatusUnauthorized)
 		return
 	}
 
@@ -953,8 +1037,20 @@ func VerifyToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Token is valid")
-	sendJsonResponse(w, http.StatusOK, "Token is valid")
+	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": email,
+		"exp":   time.Now().Add(time.Hour * 1).Unix(),
+	})
+
+	tokenString, err := newToken.SignedString([]byte(jwtSecret))
+	if err != nil {
+		log.Println("Token Signing Error:", err)
+		sendJsonError(w, "Token signing error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Token refreshed successfully")
+	sendJsonResponse(w, http.StatusOK, "Token refreshed successfully", tokenString)
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {

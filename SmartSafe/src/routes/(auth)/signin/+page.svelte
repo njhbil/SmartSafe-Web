@@ -67,7 +67,7 @@
         <p class="text-sm text-gray-200">
           Forgot your password?
           <a
-            href="/forgetpassword"
+            href="/changepassword"
             class="text-sm text-white font-semibold hover:underline"
           >
             Reset Password</a

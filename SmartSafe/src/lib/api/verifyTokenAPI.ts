@@ -1,7 +1,9 @@
 export default async function verifyTokenAPI({
   loginToken,
+  refreshToken,
 }: {
   loginToken: string;
+  refreshToken: string;
 }) {
   try {
     const localurl = import.meta.env.VITE_API_URL
@@ -12,7 +14,7 @@ export default async function verifyTokenAPI({
       headers: {
         "Content-Type": "application/json; charset=UTF-8",
       },
-      body: JSON.stringify({ loginToken }),
+      body: JSON.stringify({ loginToken, refreshToken }),
     });
 
     const json = await response.json();

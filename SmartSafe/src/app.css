@@ -163,3 +163,27 @@ button:focus-visible {
 .center-to-user button:hover {
   background-color: #0056b3;
 }
+
+.emergency-call {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emergency-call button {
+  background-color: #007bff;
+  color: white;
+  border-radius: 15px;
+  border: none;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.emergency-call button:hover {
+  background-color: #0056b3;
+}

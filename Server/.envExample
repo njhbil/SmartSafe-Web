@@ -5,4 +5,6 @@ DB_NAME_ACCOUNTS: accounts db name
 MAILTRAP_TOKEN: your mailtrap Token
 JWT_SECRET: you secret
 CLIENT_URL: http://client side ip:port
+REDIS_URL: yourip:port
+REDIS_PASSWORD: ussualy blank
 WEBMAIL: example@example.com

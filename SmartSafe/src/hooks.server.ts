@@ -17,7 +17,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (publicRoutes.includes(event.url.pathname)) {
     if (loginToken) {
       try {
-        const response = await verifyTokenAPI({ loginToken });
+        const response = await verifyTokenAPI({ loginToken, refreshToken });
         if (response.success) {
           if (
             event.url.pathname === "/signin" ||
@@ -72,7 +72,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   try {
-    const response = await verifyTokenAPI({ loginToken });
+    const response = await verifyTokenAPI({ loginToken, refreshToken });
     if (!response.success) {
       event.cookies.delete("refreshToken", { path: "/" });
       event.cookies.delete("loginToken", { path: "/" });

@@ -53,6 +53,19 @@ function initMap(target: HTMLElement): Map {
     }
   }
 
+  class EmergencyCall extends Control {
+    constructor() {
+      const div = document.createElement("div");
+      div.innerHTML = `<button><i class="fa-solid fa-phone"></i></button>`;
+      div.className = "emergency-call";
+      div.addEventListener("click", () => {});
+
+      super({
+        element: div,
+      });
+    }
+  }
+
   userLocation.setStyle(
     new Style({
       image: new CircleStyle({
@@ -93,6 +106,7 @@ function initMap(target: HTMLElement): Map {
       new Zoom({ className: "custom-zoom" }),
       new Rotate({ className: "custom-rotate" }),
       new CenterToUserControl(),
+      new EmergencyCall(),
     ]),
   });
 
