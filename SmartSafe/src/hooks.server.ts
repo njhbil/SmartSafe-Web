@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import { type Handle } from "@sveltejs/kit";
 import refreshTokenAPI from "$lib/api/refreshTokenAPI";
 import verifyTokenAPI from "$lib/api/verifyTokenAPI";
 

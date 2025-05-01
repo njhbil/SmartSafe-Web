@@ -1074,21 +1074,48 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cleanToken := strings.TrimSpace(payload.RefreshToken)
-
-	exists, err = conn.Model(new(accounts)).Where("token = ?", cleanToken).Exists()
+	var verifyTokens []verifytokens
+	err = conn.Model(new(verifytokens)).Select(&verifyTokens)
 	if err != nil {
-		log.Println("Database Query Error:", err)
+		log.Println("Database query error:", err)
 		sendJsonError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
+	for _, token := range verifyTokens {
+		exists, err = compareDataAndHash(cleanToken, token.Token)
+		if err != nil {
+			log.Println("Failed to compare token hash:", err)
+			sendJsonError(w, "Token comparison error", http.StatusInternalServerError)
+			return
+		}
+
+		if exists {
+			break
+		}
+	}
+
 	if !exists {
-		log.Println("Token does not exist")
-		sendJsonError(w, "Token does not exist", http.StatusUnauthorized)
+		log.Println("Invalid token: no match found in the database")
+		sendJsonError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	_, err = conn.Model(new(accounts)).Where("token = ?", cleanToken).Delete()
+	for _, token := range verifyTokens {
+		if exists, err = conn.Model(new(verifytokens)).Where("token = ?", token.Token).Exists(); err != nil {
+			log.Println("Database Query Error:", err)
+			sendJsonError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		if exists {
+			_, err = conn.Model(new(verifytokens)).Where("token = ?", token.Token).Delete()
+			if err != nil {
+				log.Println("Database Delete Error:", err)
+				sendJsonError(w, "Database error", http.StatusInternalServerError)
+				return
+			}
+		}
+	}
 	if err != nil {
 		log.Println("Database Delete Error:", err)
 		sendJsonError(w, "Database error", http.StatusInternalServerError)

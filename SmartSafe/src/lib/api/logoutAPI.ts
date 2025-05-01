@@ -1,15 +1,18 @@
 export default async function logoutAPI({
-	ResetToken,
+	refreshToken,
 }: {
-	ResetToken: string;
+	refreshToken: string;
 }) {
+	const localurl = import.meta.env.VITE_API_URL
+		? import.meta.env.VITE_API_URL
+		: "localhost";
 	try {
-		const response = await fetch("/api/logout", {
+		const response = await fetch(localurl + "/api/logout", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json; charset=UTF-8",
 			},
-			body: JSON.stringify({ ResetToken }),
+			body: JSON.stringify({ refreshToken }),
 		});
 
 		if (!response.ok) {

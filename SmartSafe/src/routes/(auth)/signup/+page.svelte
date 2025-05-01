@@ -142,9 +142,7 @@
                             on:click={sendOTP}
                             disabled={disableButton}
                         >
-                            {disableButton
-                                ? `Resend OTP (${time})`
-                                : "Send OTP"}
+                            {disableButton ? `Request (${time})` : "Obtain"}
                         </button>
                     </div>
                 </div>
