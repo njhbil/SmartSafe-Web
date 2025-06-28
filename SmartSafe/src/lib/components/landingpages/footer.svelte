@@ -6,13 +6,7 @@
         { name: "YouTube", icon: "youtube", url: "#" },
     ];
 
-    export let copyright = "© 2025 SMARTSAFE LTD. All rights reserved.";
-
-    export let supportLinks = [
-        { name: "Privacy Notice", url: "#" },
-        { name: "Terms & Conditions", url: "#" },
-        { name: "Cookie Settings", url: "#" },
-    ];
+    export let copyright = "© 2025 LaporIn LTD. All rights reserved.";
 </script>
 
 <footer class="bg-gray-900 text-gray-300 py-10 px-6">
@@ -21,22 +15,8 @@
     >
         <!-- Brand -->
         <div class="col-span-1">
-            <h1 class="text-2xl font-bold text-white">SmartSafe</h1>
+            <h1 class="text-2xl font-bold text-white">LaporIn</h1>
             <p>{copyright}</p>
-        </div>
-
-        <!-- Support Links -->
-        <div>
-            <h2 class="font-semibold text-white">Support Us</h2>
-            <ul class="mt-2 space-y-2">
-                {#each supportLinks as link}
-                    <li>
-                        <a href={link.url} class="hover:text-white"
-                            >{link.name}</a
-                        >
-                    </li>
-                {/each}
-            </ul>
         </div>
 
         <!-- Social Media -->

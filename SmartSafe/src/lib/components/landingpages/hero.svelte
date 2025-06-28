@@ -36,14 +36,14 @@
                 <span
                     class="bg-gradient-to-r from-blue-500 to-indigo-600 text-transparent bg-clip-text"
                 >
-                    Monitor, Be Alert, Stay Safe
+                    Pantau, Waspada, dan Tetap Aman
                 </span>
                 <br />
-                Security Radar in Your
+                    Radar Keamanan di 
                 <span
                     class="bg-gradient-to-r from-indigo-600 to-purple-500 text-transparent bg-clip-text"
                 >
-                    Hands
+                    Genggamanmu
                 </span>
             </h2>
 
@@ -55,7 +55,7 @@
                 <a
                     href="/maps"
                     class="text-base sm:text-lg md:text-xl font-semibold"
-                    >Get Started &rarr;</a
+                    >Mulai &rarr;</a
                 >
             </button>
         {/if}

@@ -88,85 +88,52 @@
 
 <main class="bg-blue-500">
     <section
-        class="w-full container mx-auto h-screen flex items-center justify-center px-4"
+        class="flex flex-col md:flex-row min-h-screen w-full"
     >
-        <div
-            class=" max-w-[1000px] flex flex-col gap-4 items-center bg-gradient-to-r from-blue-800 to-blue-600 p-10 rounded-2xl text-white shadow-lg w-full"
-        >
-            <form
-                class="flex flex-col items-center w-80 space-y-4"
-                method="POST"
-                action="?/signup"
-                use:enhance={handleEnhance}
-            >
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username (3 - 20 characters)"
-                    class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
-                    required
-                />
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Email"
-                    class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
-                    required
-                />
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Password (6 characters minimum)"
-                    class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
-                    required
-                />
-                <input
-                    type="password"
-                    name="confirmPassword"
-                    placeholder="Confirm Password (6 characters minimum)"
-                    class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
-                    required
-                />
-                <div class="flex flex-col gap-2">
-                    <div class="flex flex-row gap-2">
-                        <input
-                            type="one-time-code"
-                            name="oneTimeCode"
-                            placeholder="OTP (6 Digits)"
-                            class="border border-gray-300 rounded-md p-3 w-full text-white focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                        <button
-                            type="button"
-                            class="bg-blue-500 hover:bg-blue-700 text-white rounded-md p-3 w-1/2 transition-all duration-300"
-                            on:click={sendOTP}
-                            disabled={disableButton}
-                        >
-                            {disableButton ? `Request (${time})` : "Obtain"}
-                        </button>
-                    </div>
+        <div class="md:w-1/2 bg-blue-500 text-white flex flex-col items-center justify-center p-10">
+            <img src="/images/LAPORKAN.png" alt="Logo" class="h-24 w-auto mb-6" />
+            <h1 class="text-3xl font-bold">LaporIn</h1>
+            <p class="text-lg mt-2 text-center">Pantau,Waspada dan Tetap Aman</p>
+            <p class="text-lg mt-2 text-center">Radar Keamanan di Genggamanmu</p>
+        </div>
+
+       <div class="md:w-1/2 bg-white flex items-center justify-center p-8 rounded-t-4xl md:rounded-tl-4xl md:rounded-bl-4xl md:rounded-tr-none md:rounded-br-none">
+            <div class="w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Sign Up</h2>
+            <form class="space-y-4" method="POST" action="?/signup" use:enhance={handleEnhance}>
+                <input type="text" name="username" placeholder="Username" required class="w-full p-3 border border-gray-300 rounded" />
+                <input type="email" name="email" placeholder="Email" required class="w-full p-3 border border-gray-300 rounded" />
+                <input type="password" name="password" placeholder="Password" required class="w-full p-3 border border-gray-300 rounded" />
+                <input type="password" name="confirmPassword" placeholder="Confirm Password" required class="w-full p-3 border border-gray-300 rounded" />
+                
+                <div class="flex gap-2">
+                <input type="text" name="oneTimeCode" placeholder="OTP" class="w-full p-3 border border-gray-300 rounded" required />
+                <button
+                    type="button"
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                    on:click={sendOTP}
+                    disabled={disableButton}
+                >
+                    {disableButton ? `Request (${time})` : "Obtain"}
+                </button>
                 </div>
-                <p class="text-sm m-2">
-                    <a
-                        href="/signin"
-                        class="flex items-center space-x-2 text-gray-200"
-                        >Already have an account?</a
-                    >
-                </p>
+
                 {#if error}
-                    <p class="text-red-500">{error}</p>
+                <p class="text-red-500 text-sm">{error}</p>
+                {/if}
+                {#if success}
+                <p class="text-green-500 text-sm">{success}</p>
                 {/if}
 
-                {#if success}
-                    <p class="text-green-500">{success}</p>
-                {/if}
-                <button
-                    type="submit"
-                    class="bg-blue-500 hover:bg-blue-700 text-white rounded-md p-3 w-full transition-all duration-300"
-                >
-                    Sign Up
+                <button type="submit" class="w-full bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition">
+                Sign Up
                 </button>
+
+                <p class="text-sm text-center mt-4">
+                Sudah punya akun? <a href="/signin" class="text-blue-600 font-semibold hover:underline">Sign In</a>
+                </p>
             </form>
+            </div>
         </div>
     </section>
 </main>
