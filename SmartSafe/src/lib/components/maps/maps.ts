@@ -21,7 +21,7 @@ function initMap(target: HTMLElement): Map {
   class CenterToUserControl extends Control {
     constructor() {
       const div = document.createElement("div");
-      div.innerHTML = `<button><i class="fa-solid fa-person"></i></button>`;
+      div.innerHTML = `<button><i class="fa-solid fa-person-rays"></i>`;
       div.className = "center-to-user";
       div.addEventListener("click", () => {
         const view = map.getView();

@@ -12,7 +12,7 @@
             aria-label="Maps"
             on:click={() => goto("/maps")}
         >
-            <i class="fa-solid fa-map-location-dot"></i>
+            <i class="fa-solid fa-house"></i>
         </button>
         <button
             class="hover:bg-blue-300 bg-blue-500 w-1/3 text-white font-bold py-4"
@@ -23,9 +23,11 @@
         </button>
         <button
             class="hover:bg-blue-300 bg-blue-500 w-1/3 text-white font-bold py-4"
-            aria-label="Profile"
-            on:click={() => goto("/profile")}
+            aria-label="Statistik"
         >
+            <i class="fa-solid fa-chart-simple"></i>
+        </button>
+        <button class="hover:bg-blue-300 bg-blue-500 w-1/3 text-white font-bold py-4" aria-label="Profile" on:click={() => goto("/profil")}>
             <i class="fa-solid fa-user"></i>
         </button>
     </div>
